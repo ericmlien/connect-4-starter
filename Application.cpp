@@ -37,12 +37,12 @@ namespace ClassGame {
                 if (gameOver) {
                     ImGui::Text("Game Over!");
                     ImGui::Text("Winner: %d", gameWinner);
-                    if (ImGui::Button("Reset Game")) {
-                        game->stopGame();
-                        game->setUpBoard();
-                        gameOver = false;
-                        gameWinner = -1;
-                    }
+                }
+                if (ImGui::Button("Reset Game")) {
+                    game->stopGame();
+                    game->setUpBoard();
+                    gameOver = false;
+                    gameWinner = -1;
                 }
                 if (!game) {
                     if (ImGui::Button("Start Tic-Tac-Toe")) {

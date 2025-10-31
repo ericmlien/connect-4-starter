@@ -20,6 +20,9 @@ class Connect4 : public Game {
         bool        canBitMoveFromTo(Bit &bit, BitHolder &src, BitHolder &dst);
         void        stopGame() override;
         void        bitMovedFromTo(Bit &bit, BitHolder &src, BitHolder &dst) override;
+        void        updateAI() override;
+        bool        gameHasAI() override { return true; }
+        int         evaluateAIState(std::string state, int playerColor);
 
     // AI methods
     private:
@@ -29,4 +32,9 @@ class Connect4 : public Game {
         Bit*        PieceForPlayer(const int playerNumber);
 
         int         lowestFreeSpot (int x);
+        Player*     checkWinnerColumn(int x, int y);
+        Player*     checkWinnerRow(int x, int y);
+        Player*     checkWinnerDownRightDiag(int x, int y);
+        Player*     checkWinnerUpRightDiag(int x, int y);
+        int         negamax(std::string state, int depth, int alpha, int beta, int playerColor);
 };
