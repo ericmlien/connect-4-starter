@@ -24,6 +24,9 @@ void Connect4::setUpBoard() {
     _gameOptions.rowX = 7;
     _gameOptions.rowY = 6;
 
+    if (gameHasAI()) {
+        setAIPlayer(AI_PLAYER);
+    }
     startGame();
 }
 
@@ -221,45 +224,204 @@ int Connect4::lowestFreeSpot(int x) {
     
 }
 
-void Connect4::updateAI() {
-    return;
+int Connect4::lowestFreeSpotAI(std::string& state, int x) {
+    int lowestRow = -1;
+    for (int i = 0; i < CONNECT4_HEIGHT; i++) {
+        if (state[i * CONNECT4_WIDTH + x] != '0') {
+            break;
+        }
+        lowestRow = i;
+    }
+    return lowestRow;
 }
 
-int Connect4::evaluateAIState(std::string state, int playerColor) {
+bool Connect4::aiBoardFull(const std::string& state) {
+    return state.find('0') == std::string::npos;
+}
 
+int Connect4::checkAIWinner(std::string& state) {
+    int windowSize = 4;
+    for (int i = 0; i < CONNECT4_WIDTH - (windowSize - 1); i++) {
+        for (int j = 0; j < CONNECT4_HEIGHT - (windowSize - 1); j++) {
+
+            //Check Right and Left column for vertical 4.
+            if (checkWinStateColumn(state, j * CONNECT4_WIDTH + i) > -1) return 10;
+
+            if (checkWinStateColumn(state, j * CONNECT4_WIDTH + i + 3) > -1) return 10;
+
+            //Check Top and Bottom Rows for horizontal 4.
+            if (checkWinStateRow(state, j * CONNECT4_WIDTH + i) > -1) return 10;
+
+            if (checkWinStateRow(state, (j + 3) * CONNECT4_WIDTH + i) > -1) return 10;
+
+            //Check Right Down Diagonal
+            if (checkWinStateRow(state, (j + 3) * CONNECT4_WIDTH + i) > -1) return 10;
+
+            //Check Right Up Diagonal
+            if (checkWinStateUpRightDiag(state, (j + 3) * CONNECT4_WIDTH + i) > -1) return 10;
+            
+        }
+    }
+
+    return 0;
 } 
 
-int Connect4::negamax(std::string state, int depth, int alpha, int beta, int playerColor){
-    int bestVal = -1000;
+int Connect4::checkWinStateColumn(std::string& state, int index) {
+    if (state[index] != '0' &&
+        state[index + CONNECT4_WIDTH] == state[index] &&
+        state[index + (CONNECT4_WIDTH * 2)] == state[index] &&
+        state[index + (CONNECT4_WIDTH * 3)] == state[index]
+    ) {
+        return state[index];
+    }
+    return -1;
+}
+int Connect4::checkWinStateRow(std::string& state, int index){
+    if (state[index] != '0' &&
+        state[index + 1] == state[index] &&
+        state[index + 2] == state[index] &&
+        state[index + 3] == state[index]
+    ) {
+        return state[index];
+    }
+    return -1;
+}
+int Connect4::checkWinStateDownRightDiag(std::string& state, int index){
+    if (state[index] != '0' &&
+        state[index + CONNECT4_WIDTH + 1] == state[index] &&
+        state[index + (CONNECT4_WIDTH * 2) + 2] == state[index] &&
+        state[index + (CONNECT4_WIDTH * 3) + 3] == state[index]
+    ) {
+        return state[index];
+    }
+    return -1;
+}
+int Connect4::checkWinStateUpRightDiag(std::string& state, int index){
+     if (state[index] != '0' &&
+        state[(index - CONNECT4_WIDTH)+ 1] == state[index] &&
+        state[(index - (CONNECT4_WIDTH * 2)) + 2] == state[index] &&
+        state[(index - (CONNECT4_WIDTH * 3)) + 3] == state[index]
+    ) {
+        return state[index];
+    }
+    return -1;
+}
 
-    // int boardWinner = aiWinner(state);
-    // if (boardWinner) {
-    //     return -boardWinner;
-    // }
 
-    // bool boardFull = aiBoardFull(state);
-    // if (boardFull) {
-    //     return 0;
-    // }
+void Connect4::updateAI() {
+    int bestMove = -1000;
+    int bestIndex;
+    // _recursions = 0;
+    
+    std::string state = stateString();
+
+    for (int i = 0; i < CONNECT4_WIDTH; i++) {
+
+        int lowestRow = lowestFreeSpotAI(state, i);
+        if (lowestRow == -1) continue;
+
+        state[lowestRow * CONNECT4_WIDTH + i] = '2';
+
+        int result = -negamax(state, 0, -1000, 1000, HUMAN_PLAYER);
+
+        if (result > bestMove) {
+            bestMove = result;
+            bestIndex = lowestRow * CONNECT4_WIDTH + i;
+        }
+        state[lowestRow * CONNECT4_WIDTH + i] = '0';
+    }
+
+    if (bestIndex != -1) {
+        int xcol = bestIndex % CONNECT4_WIDTH;
+        int ycol = bestIndex / CONNECT4_WIDTH;
+        BitHolder& holder = getHolderAt(xcol, ycol);
+        actionForEmptyHolder(holder);
+        endTurn();
+    } 
+
 
     // for (int i = 0; i < 9; i++) {
     //     if (state[i] == '0') {
-    //         state[i] = playerColor == HUMAN_PLAYER ? '1' : '2';
-    //         int result = -negamax(state, depth++, -beta, -alpha, 1-playerColor);
-    //         if (result > bestVal) {
-    //             bestVal = result;
+    //         state[i] = '2';
+    //         int result = -negamax(state, 0, -1000, 1000, HUMAN_PLAYER);
+    //         if (result > bestMove) {
+    //             bestMove = result;
+    //             bestSquare = i;
     //         }
-
-    //         if (result > alpha) {
-    //             alpha = result;
-    //         }
-            
     //         state[i] = '0';
-
-    //         if (alpha >= beta) {
-    //             break;
-    //         }
     //     }
+    // }
+    // if (bestSquare != -1) {
+    //     int xcol = bestSquare % 3;
+    //     int ycol = bestSquare / 3;
+    //     BitHolder *holder = &_grid[xcol][ycol];
+    //     actionForEmptyHolder(holder);
+    //     endTurn();
+    //     std::cout << "Recursions: " << _recursions << std::endl;
+    // } else {
+    //     cout << "Best Square not found." << endl;
+    // }
+    return;
+}
+
+int Connect4::negamax(std::string& state, int depth, int alpha, int beta, int playerColor){
+    int bestVal = -1000;
+
+    if (depth >= MAX_DEPTH) {
+        return 0;
+    }
+
+    int boardWinner = checkAIWinner(state);
+    if (boardWinner) {
+        return -boardWinner;
+    }
+
+    bool boardFull = aiBoardFull(state);
+    if (boardFull) {
+        return 0;
+    }
+
+    for (int i = 0; i < CONNECT4_WIDTH; i++) {
+        int column = MOVE_ORDER[i];
+        
+        int lowestRow = lowestFreeSpotAI(state, column);
+        if (lowestRow == -1) continue;
+
+        state[lowestRow * CONNECT4_WIDTH + column] = playerColor == HUMAN_PLAYER ? '1' : '2';
+
+        int result = std::max(bestVal, -negamax(state, depth++, -beta, -alpha, 1-playerColor));
+
+        if (result > bestVal) {
+            bestVal = result;
+        }
+
+        if (result > alpha) {
+            alpha = result;
+        }
+            
+        state[lowestRow * CONNECT4_WIDTH + column] = '0';
+
+        if (alpha >= beta) {
+            break;
+        }
+    }
+        // if (state[i] == '0') {
+        //     state[i] = playerColor == HUMAN_PLAYER ? '1' : '2';
+        //     int result = -negamax(state, depth++, -beta, -alpha, 1-playerColor);
+        //     if (result > bestVal) {
+        //         bestVal = result;
+        //     }
+
+        //     if (result > alpha) {
+        //         alpha = result;
+        //     }
+            
+        //     state[i] = '0';
+
+        //     if (alpha >= beta) {
+        //         break;
+        //     }
+        // }
     // }
     
     return bestVal;
