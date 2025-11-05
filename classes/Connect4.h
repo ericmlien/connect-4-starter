@@ -41,16 +41,15 @@ class Connect4 : public Game {
         Player*     checkWinnerDownRightDiag(int x, int y);
         Player*     checkWinnerUpRightDiag(int x, int y);
 
-        int         checkAIWinner(std::string& state);
+        int         evaluateBoard(std::string& state);
         bool        aiBoardFull(const std::string& state);
         int         lowestFreeSpotAI (std::string& state, int x);
 
-        int         checkWinStateColumn(std::string& state, int index);
-        int         checkWinStateRow(std::string& state, int index);
-        int         checkWinStateDownRightDiag(std::string& state, int index);
-        int         checkWinStateUpRightDiag(std::string& state, int index);
-
-        int         evaluateBoard(std::string& state);
+        int         scoreColumn(std::string& state, int index);
+        int         scoreRow(std::string& state, int index);
+        int         scoreDownRightDiag(std::string& state, int index);
+        int         scoreUpRightDiag(std::string& state, int index);
+        int         ScoreFour(const char* four);
         
         int         negamax(std::string& state, int depth, int alpha, int beta, int playerColor);
 };

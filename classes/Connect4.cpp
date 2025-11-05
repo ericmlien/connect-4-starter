@@ -239,78 +239,93 @@ bool Connect4::aiBoardFull(const std::string& state) {
     return state.find('0') == std::string::npos;
 }
 
-int Connect4::checkAIWinner(std::string& state) {
+int Connect4::evaluateBoard(std::string& state) {
     int windowSize = 4;
+    int score = 0;
     for (int i = 0; i < CONNECT4_WIDTH - (windowSize - 1); i++) {
         for (int j = 0; j < CONNECT4_HEIGHT - (windowSize - 1); j++) {
 
-            //Check Right and Left column for vertical 4.
-            if (checkWinStateColumn(state, j * CONNECT4_WIDTH + i) > -1) return 10;
-
-            if (checkWinStateColumn(state, j * CONNECT4_WIDTH + i + 3) > -1) return 10;
-
-            //Check Top and Bottom Rows for horizontal 4.
-            if (checkWinStateRow(state, j * CONNECT4_WIDTH + i) > -1) return 10;
-
-            if (checkWinStateRow(state, (j + 3) * CONNECT4_WIDTH + i) > -1) return 10;
-
-            //Check Right Down Diagonal
-            if (checkWinStateRow(state, (j + 3) * CONNECT4_WIDTH + i) > -1) return 10;
-
-            //Check Right Up Diagonal
-            if (checkWinStateUpRightDiag(state, (j + 3) * CONNECT4_WIDTH + i) > -1) return 10;
+            score += scoreColumn(state, j * CONNECT4_WIDTH + i);
             
+            score += scoreColumn(state, j * CONNECT4_WIDTH + i + 3);
+
+            score += scoreRow(state, j * CONNECT4_WIDTH + i);
+
+            score += scoreRow(state, (j + 3) * CONNECT4_WIDTH + i);
+
+            score += scoreDownRightDiag(state, j * CONNECT4_WIDTH + i);
+
+            score += scoreUpRightDiag(state, (j + 3) * CONNECT4_WIDTH + i);
         }
     }
 
-    return 0;
+    return score;
 } 
 
-int Connect4::checkWinStateColumn(std::string& state, int index) {
-    if (state[index] != '0' &&
-        state[index + CONNECT4_WIDTH] == state[index] &&
-        state[index + (CONNECT4_WIDTH * 2)] == state[index] &&
-        state[index + (CONNECT4_WIDTH * 3)] == state[index]
-    ) {
-        return state[index];
-    }
-    return -1;
+int Connect4::scoreColumn(std::string& state, int index) {
+    char four[4] = {
+        state[index],
+        state[index + CONNECT4_WIDTH],
+        state[index + (CONNECT4_WIDTH * 2)],
+        state[index + (CONNECT4_WIDTH * 3)]
+    };
+    return ScoreFour(four);
 }
-int Connect4::checkWinStateRow(std::string& state, int index){
-    if (state[index] != '0' &&
-        state[index + 1] == state[index] &&
-        state[index + 2] == state[index] &&
-        state[index + 3] == state[index]
-    ) {
-        return state[index];
-    }
-    return -1;
+int Connect4::scoreRow(std::string& state, int index){
+    char four[4] = {
+        state[index],
+        state[index + 1],
+        state[index + 2],
+        state[index + 3]
+    };
+    return ScoreFour(four);
 }
-int Connect4::checkWinStateDownRightDiag(std::string& state, int index){
-    if (state[index] != '0' &&
-        state[index + CONNECT4_WIDTH + 1] == state[index] &&
-        state[index + (CONNECT4_WIDTH * 2) + 2] == state[index] &&
-        state[index + (CONNECT4_WIDTH * 3) + 3] == state[index]
-    ) {
-        return state[index];
-    }
-    return -1;
+int Connect4::scoreDownRightDiag(std::string& state, int index){
+    char four[4] = {
+        state[index],
+        state[index + CONNECT4_WIDTH + 1],
+        state[index + (CONNECT4_WIDTH * 2) + 2],
+        state[index + (CONNECT4_WIDTH * 3) + 3]
+    };
+    return ScoreFour(four);
 }
-int Connect4::checkWinStateUpRightDiag(std::string& state, int index){
-     if (state[index] != '0' &&
-        state[(index - CONNECT4_WIDTH)+ 1] == state[index] &&
-        state[(index - (CONNECT4_WIDTH * 2)) + 2] == state[index] &&
-        state[(index - (CONNECT4_WIDTH * 3)) + 3] == state[index]
-    ) {
-        return state[index];
-    }
-    return -1;
+int Connect4::scoreUpRightDiag(std::string& state, int index){
+    char four[4] = {
+        state[index],
+        state[(index - CONNECT4_WIDTH) + 1],
+        state[(index - (CONNECT4_WIDTH * 2)) + 2],
+        state[(index - (CONNECT4_WIDTH * 3)) + 3]
+    };
+    return ScoreFour(four);
 }
+
+int Connect4::ScoreFour(const char* four) {
+    int playerCount = 0;
+    int opponentCount = 0;
+    int emptyCount = 0;
+    for (int i = 0; i < 4; i++) {
+        if (four[i] == '1') opponentCount++;
+        else if (four[i] == '2') playerCount++;
+        else emptyCount++;
+    }
+
+    if (playerCount == 4) return 100000;
+    if (opponentCount == 4) return -100000;
+
+    if (playerCount == 2 && emptyCount == 2) return 10;
+    if (playerCount == 3 && emptyCount == 1) return 1000;
+
+    if (opponentCount == 2 && emptyCount == 2) return -10;
+    if (opponentCount == 3 && emptyCount == 1) return -1000;
+
+    return 0;
+}
+
 
 
 void Connect4::updateAI() {
-    int bestMove = -1000;
-    int bestIndex;
+    int bestMove = -9999999;
+    int bestIndex = -1;
     // _recursions = 0;
     
     std::string state = stateString();
@@ -322,16 +337,18 @@ void Connect4::updateAI() {
 
         state[lowestRow * CONNECT4_WIDTH + i] = '2';
 
-        int result = -negamax(state, 0, -1000, 1000, HUMAN_PLAYER);
+        int result = -negamax(state, 0, -9999999, 9999999, HUMAN_PLAYER);
+
+        state[lowestRow * CONNECT4_WIDTH + i] = '0';
 
         if (result > bestMove) {
             bestMove = result;
             bestIndex = lowestRow * CONNECT4_WIDTH + i;
         }
-        state[lowestRow * CONNECT4_WIDTH + i] = '0';
+        
     }
 
-    if (bestIndex != -1) {
+    if (bestIndex > -1) {
         int xcol = bestIndex % CONNECT4_WIDTH;
         int ycol = bestIndex / CONNECT4_WIDTH;
         BitHolder& holder = getHolderAt(xcol, ycol);
@@ -364,32 +381,59 @@ void Connect4::updateAI() {
     return;
 }
 
+/* 
+Window of 4
+Check top and bottom row possibilies
+Check left and right columns
+Check the two diagonals
+
+check top row of the window
+How should I find the best spot in that row
+
+Per window, per column, row and diagonal,
+Count empty spaces,
+Count our spaces,
+Count opponent spaces
+
+In one row for example: 1, 0, 0, 2
+1 1 (our spaces)
+1 2 (opponent)
+2 0 (empty)
+
+In some other recursion: 1, 1, 0, 2
+2 1 (our spaces)
+1 2 (opponent)
+1 0 (empty)
+ Better score cuz more 1s 
+For this row, the score would be (2 * 100) - 1
+
+In the whole window 
+
+*/
+
+
 int Connect4::negamax(std::string& state, int depth, int alpha, int beta, int playerColor){
-    int bestVal = -1000;
+    int bestVal = -9999999;
 
-    if (depth >= MAX_DEPTH) {
+    if (depth >= MAX_DEPTH || aiBoardFull(state)) {
         return 0;
     }
 
-    int boardWinner = checkAIWinner(state);
-    if (boardWinner) {
-        return -boardWinner;
-    }
+    // evaluate board !!!!!!
 
-    bool boardFull = aiBoardFull(state);
-    if (boardFull) {
-        return 0;
-    }
+    int result = evaluateBoard(state);
+    // if (result >= 10000) return result;
+
 
     for (int i = 0; i < CONNECT4_WIDTH; i++) {
         int column = MOVE_ORDER[i];
-        
+
         int lowestRow = lowestFreeSpotAI(state, column);
         if (lowestRow == -1) continue;
 
         state[lowestRow * CONNECT4_WIDTH + column] = playerColor == HUMAN_PLAYER ? '1' : '2';
 
-        int result = std::max(bestVal, -negamax(state, depth++, -beta, -alpha, 1-playerColor));
+        result = -negamax(state, depth++, -beta, -alpha, 1-playerColor);
 
         if (result > bestVal) {
             bestVal = result;
