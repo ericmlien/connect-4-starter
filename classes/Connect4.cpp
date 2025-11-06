@@ -315,8 +315,8 @@ int Connect4::ScoreFour(const char* four) {
     if (playerCount == 2 && emptyCount == 2) return 10;
     if (playerCount == 3 && emptyCount == 1) return 1000;
 
-    if (opponentCount == 2 && emptyCount == 2) return -10;
-    if (opponentCount == 3 && emptyCount == 1) return -1000;
+    if (opponentCount == 2 && emptyCount == 2) return -20;
+    if (opponentCount == 3 && emptyCount == 1) return -10000;
 
     return 0;
 }
@@ -353,7 +353,6 @@ void Connect4::updateAI() {
         int ycol = bestIndex / CONNECT4_WIDTH;
         BitHolder& holder = getHolderAt(xcol, ycol);
         actionForEmptyHolder(holder);
-        endTurn();
     } 
 
 
@@ -415,14 +414,15 @@ In the whole window
 int Connect4::negamax(std::string& state, int depth, int alpha, int beta, int playerColor){
     int bestVal = -9999999;
 
-    if (depth >= MAX_DEPTH || aiBoardFull(state)) {
-        return 0;
-    }
 
     // evaluate board !!!!!!
 
     int result = evaluateBoard(state);
     // if (result >= 10000) return result;
+
+    if (depth >= MAX_DEPTH || aiBoardFull(state)) {
+        return result;
+    }
 
 
     for (int i = 0; i < CONNECT4_WIDTH; i++) {
